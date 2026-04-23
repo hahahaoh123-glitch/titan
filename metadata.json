@@ -1,6 +1,6 @@
 {
-  "name": "Remix: TITAN X | 終極金融終端",
-  "description": "高級金融模擬與 AI 策略終端，涵蓋複利演算、資產配置與 AI 理財建議。",
+  "name": "TITAN X Finance Terminal",
+  "description": "Advanced financial simulator with AI strategies.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }
