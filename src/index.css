@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@theme {
+  --color-neon: #00f2ff;
+  --color-gold: #ffd700;
+  --color-dark: #020202;
+  --color-glass: rgba(255, 255, 255, 0.03);
+  --color-border: rgba(0, 242, 255, 0.15);
+  
+  --font-sans: "Inter", "SF Pro Display", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-dark text-slate-100 antialiased selection:bg-neon/30;
+  }
+}
+
+.glass-card {
+  @apply bg-glass border border-border rounded-2xl backdrop-blur-xl shadow-2xl;
+}
+
+.neon-shadow {
+  box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
+}
+
+.neon-text {
+  text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+}
+
+/* Custom transitions */
+.page-enter {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+input[type="number"], input[type="text"] {
+  @apply bg-black/50 border border-white/10 rounded-lg py-3 px-4 text-neon focus:border-neon focus:ring-1 focus:ring-neon outline-none transition-all;
+}
+
+button {
+  @apply transition-all active:scale-95;
+}
+
