@@ -617,7 +617,7 @@ export default function App() {
       {/* Header */}
       <header className="h-16 border-b border-white/10 backdrop-blur-md sticky top-0 z-50 px-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-neon rounded flex items-center justify-center font-black text-black text-xl">X</div>
+          <div className="w-8 h-8 bg-neon rounded flex items-center justify-center font-black text-black text-xl">T</div>
           <span className="font-black tracking-[4px] text-neon neon-text">TITAN_SYSTEM</span>
         </div>
         
@@ -687,7 +687,7 @@ export default function App() {
       {/* Footer Branding */}
       <footer className="py-6 border-t border-white/5 bg-black/30">
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center text-[10px] uppercase tracking-widest text-slate-700">
-           <span>TITAN X INTERACTIVE CORE V2.1.0</span>
+           <span>TITAN_SYSTEM INTERACTIVE CORE V2.1.0</span>
            <span>SEC_STATUS: STANDBY</span>
         </div>
       </footer>
