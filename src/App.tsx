@@ -613,7 +613,14 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col font-sans">
+    <div className="min-h-screen flex flex-col font-sans relative">
+      {/* Textured Ambient Background Container */}
+      <div className="textured-bg">
+        <div className="textured-grid" />
+        <div className="ambient-glow-1" />
+        <div className="ambient-glow-2" />
+      </div>
+
       {/* Header */}
       <header className="h-16 border-b border-white/10 backdrop-blur-md sticky top-0 z-50 px-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
