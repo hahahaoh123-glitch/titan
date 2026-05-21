@@ -137,3 +137,23 @@ button {
   @apply transition-all active:scale-95;
 }
 
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(3, 2, 6, 0.95);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 242, 255, 0.2);
+  border-radius: 999px;
+  border: 2px solid rgba(3, 2, 6, 0.95);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 242, 255, 0.45);
+}
+

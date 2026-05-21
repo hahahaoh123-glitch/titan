@@ -352,7 +352,7 @@ const AssetAllocator = ({ allocation, onChange, riskProfile, onGo }: {
   const data = [
     { name: '股票', value: allocation.stocks, color: '#00f2ff' },
     { name: '債券', value: allocation.bonds, color: '#ffd700' },
-    { name: '現金', value: allocation.cash, color: '#475569' },
+    { name: '現金', value: allocation.cash, color: '#a855f7' },
   ];
 
   // Proportional dynamic slider update keeping sum exactly at 100% for silky smooth sliding (滑動)
@@ -417,18 +417,30 @@ const AssetAllocator = ({ allocation, onChange, riskProfile, onGo }: {
           <div className="space-y-6">
             {['股票', '債券', '現金'].map((type, idx) => {
               const key = idx === 0 ? 'stocks' : idx === 1 ? 'bonds' : 'cash';
+              const config = {
+                stocks: { textClass: 'text-neon', badgeBg: 'bg-neon/10 border-neon/30 text-neon', color: '#00f2ff' },
+                bonds: { textClass: 'text-gold', badgeBg: 'bg-gold/10 border-gold/30 text-gold', color: '#ffd700' },
+                cash: { textClass: 'text-[#a855f7]', badgeBg: 'bg-[#a855f7]/10 border-[#a855f7]/30 text-[#a855f7]', color: '#a855f7' }
+              }[key];
+              
               return (
-                <div key={type}>
-                  <div className="flex justify-between mb-2">
-                    <label className="text-xs text-slate-400 font-medium">{type}</label>
-                    <span className="text-xs font-bold text-neon">{allocation[key as keyof typeof allocation]}%</span>
+                <div key={type} className="p-3.5 bg-white/[0.02] border border-white/5 rounded-xl space-y-2.5 hover:bg-white/[0.04] transition-colors shadow-inner">
+                  <div className="flex justify-between items-center">
+                    <span className={`text-xs font-black tracking-wider flex items-center gap-1.5 ${config.textClass}`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                      {type}
+                    </span>
+                    <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-md border ${config.badgeBg}`}>
+                      {allocation[key as keyof typeof allocation]}%
+                    </span>
                   </div>
                   <input 
                     type="range" 
                     min="0" max="100" 
                     value={allocation[key as keyof typeof allocation]} 
                     onChange={e => handleSliderChange(key as 'stocks' | 'bonds' | 'cash', Number(e.target.value))}
-                    className="w-full accent-neon cursor-pointer h-2 bg-black/40 rounded-lg outline-none appearance-none"
+                    className="w-full cursor-pointer h-2 bg-black/40 rounded-lg outline-none appearance-none hover:bg-black/60 transition-colors"
+                    style={{ accentColor: config.color }}
                   />
                 </div>
               );
@@ -468,19 +480,59 @@ const AssetAllocator = ({ allocation, onChange, riskProfile, onGo }: {
               <p className="text-2xl font-black text-white">{allocation.stocks}%</p>
             </div>
           </div>
-          <div className="flex-1 space-y-4">
-            <h4 className="font-bold border-l-2 border-neon pl-3 text-white">策略洞察</h4>
-            <div className="text-sm text-slate-400 space-y-3 leading-relaxed">
-              <p>
-                {allocation.stocks > 70 ? "🔥 進攻型配置：您追求最大化成長，但需具備強大的心理素質。" : 
-                 allocation.stocks > 40 ? "⚖️ 平衡型配置：在大盤成長與抗震之間取得了優點。" :
-                 "🛡️ 防禦型配置：您的主要目標是資產保全。"}
-              </p>
-              <div className="p-4 bg-white/5 rounded-lg border border-white/5 shadow-inner">
-                <p className="text-[10px] text-slate-500 uppercase">預估年化報酬率</p>
-                <p className="text-2xl font-black text-neon">{(allocation.stocks * 0.08 + allocation.bonds * 0.04 + allocation.cash * 0.015).toFixed(1)}%</p>
-              </div>
-            </div>
+          <div className="flex-1 space-y-4 w-full">
+            <h4 className="font-bold border-l-2 border-neon pl-3 text-white">智慧策略分析</h4>
+            
+            {/* Dynamic Portfolio Grading */}
+            {(() => {
+              const rating = allocation.stocks >= 75 ? {
+                grade: "S-Rank",
+                title: "高攻成長開拓者",
+                desc: "追求最大複利效果，需承擔高心理壓力與劇烈波動。",
+                badgeStyle: "text-red-400 bg-red-400/10 border-red-500/25 shadow-[0_0_15px_rgba(248,113,113,0.15)]"
+              } : allocation.stocks >= 50 ? {
+                grade: "AA-Rank",
+                title: "黃金雙軸平衡型",
+                desc: "兼顧權值成長與抗跌配息力，全天候市場對策。",
+                badgeStyle: "text-neon bg-neon/10 border-neon/30 shadow-[0_0_15px_rgba(0,242,255,0.15)]"
+              } : allocation.stocks >= 25 ? {
+                grade: "A-Rank",
+                title: "穩健防守守護者",
+                desc: "大幅抑制震盪起伏，保障既有資產並溫和成長。",
+                badgeStyle: "text-gold bg-gold/10 border-gold/30 shadow-[0_0_15px_rgba(255,215,0,0.15)]"
+              } : {
+                grade: "🛡️ SECURE",
+                title: "鋼鐵防禦保值壁壘",
+                desc: "保守防禦極致，幾乎免受崩盤衝擊，維持強大流動性。",
+                badgeStyle: "text-green-400 bg-green-400/10 border-green-500/20 shadow-[0_0_15px_rgba(74,222,128,0.12)]"
+              };
+
+              return (
+                <div className="space-y-4">
+                  <div className={`p-4 rounded-xl border ${rating.badgeStyle} flex items-center gap-4 transition-all duration-300`}>
+                    <div className="text-center shrink-0">
+                      <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-0.5">組態級別</span>
+                      <span className="text-xl font-mono font-black tracking-tighter block">{rating.grade}</span>
+                    </div>
+                    <div className="border-l border-white/5 pl-4">
+                      <h5 className="font-bold text-white text-xs mb-0.5">{rating.title}</h5>
+                      <p className="text-[10px] text-slate-400 leading-tight">{rating.desc}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-white/5 rounded-xl border border-white/5 shadow-inner">
+                      <p className="text-[9px] text-slate-500 uppercase font-mono tracking-wider">預估年報酬</p>
+                      <p className="text-xl font-black text-neon">{(allocation.stocks * 0.08 + allocation.bonds * 0.04 + allocation.cash * 0.015).toFixed(1)}%</p>
+                    </div>
+                    <div className="p-3 bg-white/5 rounded-xl border border-white/5 shadow-inner">
+                      <p className="text-[9px] text-slate-500 uppercase font-mono tracking-wider">防禦值指數</p>
+                      <p className="text-xl font-black text-gold">{(allocation.bonds * 1.2 + allocation.cash * 2.0).toFixed(0)} CP</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </Card>
       </div>
@@ -601,7 +653,7 @@ const Home = ({
   const data = [
     { name: '股票', value: allocation.stocks, color: '#00f2ff' },
     { name: '債券', value: allocation.bonds, color: '#ffd700' },
-    { name: '現金', value: allocation.cash, color: '#475569' },
+    { name: '現金', value: allocation.cash, color: '#a855f7' },
   ];
 
   const handleSliderChange = (key: 'stocks' | 'bonds' | 'cash', val: number) => {
@@ -742,15 +794,20 @@ const Home = ({
                 
                 {['股票', '債券', '現金'].map((type, idx) => {
                   const key = idx === 0 ? 'stocks' : idx === 1 ? 'bonds' : 'cash';
-                  const labelColor = idx === 0 ? 'text-neon' : idx === 1 ? 'text-gold' : 'text-slate-400';
+                  const config = {
+                    stocks: { textClass: 'text-neon', badgeBg: 'bg-neon/10 border-neon/30 text-neon', color: '#00f2ff' },
+                    bonds: { textClass: 'text-gold', badgeBg: 'bg-gold/10 border-gold/30 text-gold', color: '#ffd700' },
+                    cash: { textClass: 'text-[#a855f7]', badgeBg: 'bg-[#a855f7]/10 border-[#a855f7]/30 text-[#a855f7]', color: '#a855f7' }
+                  }[key];
+                  
                   return (
-                    <div key={type} className="space-y-1.5">
+                    <div key={type} className="p-3 bg-white/[0.015] border border-white/5 rounded-xl space-y-2 hover:bg-white/[0.03] transition-colors shadow-inner">
                       <div className="flex justify-between items-center">
-                        <span className={`text-xs font-bold ${labelColor} flex items-center gap-1.5`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${idx === 0 ? 'bg-neon' : idx === 1 ? 'bg-gold' : 'bg-slate-400'}`} />
+                        <span className={`text-xs font-black tracking-wider flex items-center gap-1.5 ${config.textClass}`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
                           {type}
                         </span>
-                        <span className="text-xs font-mono font-black text-white bg-white/5 px-1.5 py-0.5 rounded">
+                        <span className={`text-xs font-mono font-bold px-1.5 py-0.5 rounded border ${config.badgeBg}`}>
                           {allocation[key as keyof typeof allocation]}%
                         </span>
                       </div>
@@ -759,18 +816,33 @@ const Home = ({
                         min="0" max="100" 
                         value={allocation[key as keyof typeof allocation]} 
                         onChange={e => handleSliderChange(key as 'stocks' | 'bonds' | 'cash', Number(e.target.value))}
-                        className="w-full accent-neon cursor-pointer h-1.5 bg-white/5 rounded-lg outline-none appearance-none hover:bg-white/10 transition-colors"
+                        className="w-full cursor-pointer h-1.5 bg-black/40 rounded-lg outline-none appearance-none hover:bg-black/60 transition-colors"
+                        style={{ accentColor: config.color }}
                       />
                     </div>
                   );
                 })}
 
-                <div className="p-3 bg-white/[0.02] border border-white/5 rounded-lg space-y-1">
-                  <span className="text-[10px] text-slate-500 uppercase tracking-wider block">預估年報酬率</span>
-                  <p className="text-2xl font-black text-neon font-mono">{estimatedReturn}%</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl space-y-1">
+                    <span className="text-[10px] text-slate-500 uppercase tracking-wider block">預估年報酬率</span>
+                    <p className="text-2xl font-black text-neon font-mono">{estimatedReturn}%</p>
+                  </div>
+                  <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl space-y-0.5">
+                    <span className="text-[10px] text-slate-500 uppercase tracking-wider block">資產組態評級</span>
+                    <p className={`text-base font-black mt-1 ${
+                      allocation.stocks >= 75 ? 'text-red-400' :
+                      allocation.stocks >= 50 ? 'text-neon font-black' :
+                      allocation.stocks >= 25 ? 'text-gold font-bold' : 'text-green-400'
+                    }`}>
+                      {allocation.stocks >= 75 ? 'S-Rank 拓荒' :
+                       allocation.stocks >= 50 ? 'AA-Rank 溫衡' :
+                       allocation.stocks >= 25 ? 'A-Rank 防禦' : 'SECURE 壁壘'}
+                    </p>
+                  </div>
                 </div>
               </div>
-
+ 
               {/* Pie Chart on Right of inner grid */}
               <div className="md:col-span-6 flex flex-col items-center justify-center relative md:border-l md:border-white/5 md:pl-4">
                 <div className="w-full h-[220px] flex items-center justify-center relative">
@@ -801,11 +873,11 @@ const Home = ({
                     </p>
                   </div>
                 </div>
-
+ 
                 <div className="text-[10px] flex gap-3 text-slate-500 mt-2 font-mono">
                   <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-neon inline-block" /> 股: {allocation.stocks}%</span>
                   <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-gold inline-block" /> 債: {allocation.bonds}%</span>
-                  <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block" /> 現: {allocation.cash}%</span>
+                  <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#a855f7] inline-block" /> 現: {allocation.cash}%</span>
                 </div>
               </div>
             </div>
