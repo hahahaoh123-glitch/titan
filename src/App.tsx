@@ -355,6 +355,43 @@ const AssetAllocator = ({ allocation, onChange, riskProfile, onGo }: {
     { name: '現金', value: allocation.cash, color: '#475569' },
   ];
 
+  // Proportional dynamic slider update keeping sum exactly at 100% for silky smooth sliding (滑動)
+  const handleSliderChange = (key: 'stocks' | 'bonds' | 'cash', val: number) => {
+    const otherKeys = (['stocks', 'bonds', 'cash'] as const).filter(k => k !== key);
+    const k1 = otherKeys[0];
+    const k2 = otherKeys[1];
+    
+    const currentTotalOther = allocation[k1] + allocation[k2];
+    const remaining = 100 - val;
+    
+    let newK1 = 0;
+    let newK2 = 0;
+    
+    if (currentTotalOther > 0) {
+      newK1 = Math.round((allocation[k1] / currentTotalOther) * remaining);
+      newK2 = remaining - newK1;
+    } else {
+      newK1 = Math.round(remaining / 2);
+      newK2 = remaining - newK1;
+    }
+    
+    // Bounds guard safety check
+    if (newK1 < 0) {
+      newK2 += newK1;
+      newK1 = 0;
+    }
+    if (newK2 < 0) {
+      newK1 += newK2;
+      newK2 = 0;
+    }
+    
+    onChange({
+      [key]: val,
+      [k1]: newK1,
+      [k2]: newK2
+    });
+  };
+
   return (
     <div className="space-y-6">
       <Card className="border-l-4 border-l-neon bg-neon/5">
@@ -365,8 +402,8 @@ const AssetAllocator = ({ allocation, onChange, riskProfile, onGo }: {
               {riskProfile ? `根據您的 ${riskProfile} 屬性建議配置` : "為什麼要分配資產？"}
             </h3>
             <p className="text-sm text-slate-400 leading-relaxed">
-              根據您的風險偏好，您可以動態調整下方的比例。系統會根據配置自動推算未來回報。
-              合理的配置能幫你在市場大跌時「減震」，這是唯一能降低風險而不一定降低報酬的方法。
+              拖拽滑桿時其餘比例將**自動等比例增減（完美等比例連動）**。系統將立即依據比重動態演算未來預期增長。
+              這讓您在調整資產比重時感受到最極致流暢的滑動效果。
             </p>
           </div>
         </div>
@@ -383,25 +420,25 @@ const AssetAllocator = ({ allocation, onChange, riskProfile, onGo }: {
               return (
                 <div key={type}>
                   <div className="flex justify-between mb-2">
-                    <label className="text-xs text-slate-400">{type}</label>
-                    <span className="text-xs text-neon">{allocation[key as keyof typeof allocation]}%</span>
+                    <label className="text-xs text-slate-400 font-medium">{type}</label>
+                    <span className="text-xs font-bold text-neon">{allocation[key as keyof typeof allocation]}%</span>
                   </div>
                   <input 
                     type="range" 
                     min="0" max="100" 
                     value={allocation[key as keyof typeof allocation]} 
-                    onChange={e => onChange({ ...allocation, [key]: Number(e.target.value) })}
-                    className="w-full accent-neon cursor-pointer"
+                    onChange={e => handleSliderChange(key as 'stocks' | 'bonds' | 'cash', Number(e.target.value))}
+                    className="w-full accent-neon cursor-pointer h-2 bg-black/40 rounded-lg outline-none appearance-none"
                   />
                 </div>
               );
             })}
-            <div className={`text-xs p-2 rounded text-center ${allocation.stocks + allocation.bonds + allocation.cash === 100 ? 'text-green-500 bg-green-500/10' : 'text-red-500 bg-red-500/10'}`}>
-              比例總和：{allocation.stocks + allocation.bonds + allocation.cash}% (需=100)
+            <div className="text-xs p-2 rounded text-center text-green-500 bg-green-500/10 font-bold border border-green-500/20">
+              比例總和：{allocation.stocks + allocation.bonds + allocation.cash}% (極速智動均衡)
             </div>
             <button 
               onClick={onGo}
-              className="w-full py-3 bg-neon text-black font-bold rounded-lg shadow-lg"
+              className="w-full py-3 bg-neon text-black font-bold rounded-lg shadow-lg hover:brightness-110 active:scale-95 transition-all text-sm uppercase tracking-wider"
             >
               進入演算模擬
             </button>
@@ -409,27 +446,39 @@ const AssetAllocator = ({ allocation, onChange, riskProfile, onGo }: {
         </Card>
 
         <Card className="lg:col-span-2 flex flex-col md:flex-row items-center gap-8">
-          <div className="flex-1 w-full h-[250px] md:h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <RePieChart>
-                <Pie data={data} innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" stroke="none">
-                  {data.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                </Pie>
-                <Tooltip contentStyle={{ backgroundColor: '#020202', border: '1px solid #00f2ff20', borderRadius: '12px' }} itemStyle={{ color: '#00f2ff' }} />
-              </RePieChart>
-            </ResponsiveContainer>
+          <div className="flex-1 w-full h-[250px] md:h-[300px] flex items-center justify-center relative">
+            <RePieChart width={250} height={250}>
+              <Pie 
+                data={data} 
+                innerRadius={70} 
+                outerRadius={100} 
+                paddingAngle={5} 
+                dataKey="value" 
+                stroke="none"
+                isAnimationActive={true}
+                animationDuration={300}
+              >
+                {data.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+              </Pie>
+              <Tooltip contentStyle={{ backgroundColor: '#020202', border: '1px solid #00f2ff20', borderRadius: '12px' }} itemStyle={{ color: '#00f2ff' }} />
+            </RePieChart>
+            {/* Center value display */}
+            <div className="absolute text-center">
+              <p className="text-[10px] text-slate-500 uppercase tracking-widest">股票比重</p>
+              <p className="text-2xl font-black text-white">{allocation.stocks}%</p>
+            </div>
           </div>
           <div className="flex-1 space-y-4">
-            <h4 className="font-bold border-l-2 border-neon pl-3">策略洞察</h4>
+            <h4 className="font-bold border-l-2 border-neon pl-3 text-white">策略洞察</h4>
             <div className="text-sm text-slate-400 space-y-3 leading-relaxed">
               <p>
                 {allocation.stocks > 70 ? "🔥 進攻型配置：您追求最大化成長，但需具備強大的心理素質。" : 
                  allocation.stocks > 40 ? "⚖️ 平衡型配置：在大盤成長與抗震之間取得了優點。" :
                  "🛡️ 防禦型配置：您的主要目標是資產保全。"}
               </p>
-              <div className="p-3 bg-white/5 rounded-lg border border-white/5">
+              <div className="p-4 bg-white/5 rounded-lg border border-white/5 shadow-inner">
                 <p className="text-[10px] text-slate-500 uppercase">預估年化報酬率</p>
-                <p className="text-xl font-bold text-neon">{(allocation.stocks * 0.08 + allocation.bonds * 0.04 + allocation.cash * 0.015).toFixed(1)}%</p>
+                <p className="text-2xl font-black text-neon">{(allocation.stocks * 0.08 + allocation.bonds * 0.04 + allocation.cash * 0.015).toFixed(1)}%</p>
               </div>
             </div>
           </div>
@@ -444,13 +493,23 @@ const AssetAllocator = ({ allocation, onChange, riskProfile, onGo }: {
 // --- Risk Quiz ---
 const RiskAssessment = ({ onComplete }: { onComplete: (res: string) => void }) => {
   const [step, setStep] = useState(0);
+  const [score1, setScore1] = useState(0);
   const [result, setResult] = useState<string | null>(null);
 
-  const next = (type: string) => {
-    if (step < 1) setStep(step + 1);
-    else {
-      setResult(type);
-      onComplete(type);
+  const handleAnswer = (score: number) => {
+    if (step === 0) {
+      setScore1(score);
+      setStep(1);
+    } else {
+      const totalScore = score1 + score;
+      let finalType = '穩健型 (Balanced)';
+      if (totalScore >= 5) {
+        finalType = '積極型 (High Growth)';
+      } else if (totalScore <= 3) {
+        finalType = '保守型 (Defensive)';
+      }
+      setResult(finalType);
+      onComplete(finalType);
     }
   };
 
@@ -474,18 +533,38 @@ const RiskAssessment = ({ onComplete }: { onComplete: (res: string) => void }) =
           {!result ? (
             <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
               <h2 className="text-xl md:text-2xl font-black text-neon neon-text uppercase tracking-widest px-4">
-                {step === 0 ? "Q1: 如果市場崩跌 25%，你會？" : "Q2: 您投資這筆錢的最終目的是？"}
+                {step === 0 ? "Q1: 如果市場崩跌 25%，你會？" : "Q2: 您這筆投資預計要置放多久，能承受多少資產年波動？"}
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl mx-auto px-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto px-4">
                   {step === 0 ? (
                     <>
-                      <button onClick={() => next('aggressive')} className="p-4 bg-white/5 border border-white/10 rounded-xl hover:border-neon transition-all text-sm md:text-base">視為打折，借錢也要買</button>
-                      <button onClick={() => next('conservative')} className="p-4 bg-white/5 border border-white/10 rounded-xl hover:border-neon transition-all text-sm md:text-base">立刻停損，保住現金</button>
+                      <button onClick={() => handleAnswer(3)} className="p-4 bg-white/5 border border-white/10 rounded-xl hover:border-neon hover:bg-neon/15 hover:shadow-[0_0_20px_rgba(0,242,255,0.25)] transition-all text-sm md:text-base font-bold text-white">
+                        視為打折，借錢也要買
+                        <span className="block text-xs text-slate-400 mt-1 font-normal">（積極尋求超額報酬）</span>
+                      </button>
+                      <button onClick={() => handleAnswer(2)} className="p-4 bg-white/5 border border-white/10 rounded-xl hover:border-neon hover:bg-neon/15 hover:shadow-[0_0_20px_rgba(0,242,255,0.25)] transition-all text-sm md:text-base font-bold text-white">
+                        保持觀望，按兵不動
+                        <span className="block text-xs text-slate-400 mt-1 font-normal">（先觀察情勢、續抱資產）</span>
+                      </button>
+                      <button onClick={() => handleAnswer(1)} className="p-4 bg-white/5 border border-white/10 rounded-xl hover:border-neon hover:bg-neon/15 hover:shadow-[0_0_20px_rgba(0,242,255,0.25)] transition-all text-sm md:text-base font-bold text-white">
+                        立刻停損，保住現金
+                        <span className="block text-xs text-slate-400 mt-1 font-normal">（規避進一步的資產震盪）</span>
+                      </button>
                     </>
                   ) : (
                     <>
-                      <button onClick={() => next('積極型 (High Growth)')} className="p-4 bg-white/5 border border-white/10 rounded-xl hover:border-neon transition-all text-sm md:text-base">資產迅速翻倍，忍受震盪</button>
-                      <button onClick={() => next('穩健型 (Balanced)')} className="p-4 bg-white/5 border border-white/10 rounded-xl hover:border-neon transition-all text-sm md:text-base">資產穩步增長，對抗通膨</button>
+                      <button onClick={() => handleAnswer(3)} className="p-4 bg-white/5 border border-white/10 rounded-xl hover:border-neon hover:bg-neon/15 hover:shadow-[0_0_20px_rgba(0,242,255,0.25)] transition-all text-sm md:text-base font-bold text-white">
+                        5年以上長期投資
+                        <span className="block text-xs text-slate-400 mt-1 font-normal">可承擔30%以上劇烈震盪，追求翻倍空間</span>
+                      </button>
+                      <button onClick={() => handleAnswer(2)} className="p-4 bg-white/5 border border-white/10 rounded-xl hover:border-neon hover:bg-neon/15 hover:shadow-[0_0_20px_rgba(0,242,255,0.25)] transition-all text-sm md:text-base font-bold text-white">
+                        2至5年中期規劃
+                        <span className="block text-xs text-slate-400 mt-1 font-normal">接受15%上下溫和波動，希望資產穩健成長</span>
+                      </button>
+                      <button onClick={() => handleAnswer(1)} className="p-4 bg-white/5 border border-white/10 rounded-xl hover:border-neon hover:bg-neon/15 hover:shadow-[0_0_20px_rgba(0,242,255,0.25)] transition-all text-sm md:text-base font-bold text-white">
+                        2年以內短適配置
+                        <span className="block text-xs text-slate-400 mt-1 font-normal">幾乎無法忍受虧損，要求極低波動與高流動性</span>
+                      </button>
                     </>
                   )}
               </div>
@@ -500,7 +579,7 @@ const RiskAssessment = ({ onComplete }: { onComplete: (res: string) => void }) =
               <p className="text-slate-400 text-sm max-w-md mx-auto leading-relaxed">
                 診斷建議：建議將此結果應用至「資產配置」模組。若是積極型，股票佔比可調高；若是穩健型，建議維持股債平衡。
               </p>
-              <button onClick={() => {setStep(0); setResult(null)}} className="block mx-auto text-xs text-slate-500 hover:text-neon underline">重新測試</button>
+              <button onClick={() => {setStep(0); setScore1(0); setResult(null)}} className="block mx-auto text-xs text-slate-500 hover:text-neon underline">重新測試</button>
             </motion.div>
           )}
         </AnimatePresence>
@@ -510,66 +589,235 @@ const RiskAssessment = ({ onComplete }: { onComplete: (res: string) => void }) =
 };
 
 // --- Code Reference Section (Removed UI as requested) ---
-const Home = ({ onGo }: { onGo: (id: string) => void }) => (
-  <div className="space-y-8">
-    <Card className="relative overflow-hidden group border-neon/30">
-      <div className="relative z-10 space-y-4">
-        <h2 className="text-2xl md:text-3xl font-black neon-text uppercase tracking-widest">系統概覽：整合型金融模擬</h2>
-        <p className="text-slate-300 max-w-2xl leading-relaxed text-sm md:text-base">
-          這是一個高度關聯的理財引擎。在本系統中，您的「風險屬性」與「資產配置」會自動調控「報酬預期」，
-          並整合「複利演算」來推算「退休缺口」與「市場極端壓力」。
-        </p>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
-          <button onClick={() => onGo('risk')} className="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/10 hover:border-neon hover:bg-neon/5 transition-all text-left">
-            <div className="p-3 bg-neon/10 rounded-full text-neon shrink-0"><ShieldCheck /></div>
-            <div>
-              <p className="font-bold text-sm">步驟一：風險診斷</p>
-              <p className="text-xs text-slate-500">了解自己的心理底線。</p>
-            </div>
-          </button>
-          
-          <button onClick={() => onGo('allocation')} className="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/10 hover:border-neon hover:bg-neon/5 transition-all text-left">
-            <div className="p-3 bg-neon/10 rounded-full text-neon shrink-0"><PieChart /></div>
-            <div>
-              <p className="font-bold text-sm">步驟二：資產配置</p>
-              <p className="text-xs text-slate-500">連動計算預計報酬率。</p>
-            </div>
-          </button>
+const Home = ({ 
+  allocation, 
+  onChange, 
+  onGo 
+}: { 
+  allocation: { stocks: number, bonds: number, cash: number },
+  onChange: (a: any) => void,
+  onGo: (id: string) => void 
+}) => {
+  const data = [
+    { name: '股票', value: allocation.stocks, color: '#00f2ff' },
+    { name: '債券', value: allocation.bonds, color: '#ffd700' },
+    { name: '現金', value: allocation.cash, color: '#475569' },
+  ];
 
-          <button onClick={() => onGo('sim')} className="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/10 hover:border-neon hover:bg-neon/5 transition-all text-left">
-            <div className="p-3 bg-neon/10 rounded-full text-neon shrink-0"><TrendingUp /></div>
-            <div>
-              <p className="font-bold text-sm">步驟三：成長演算</p>
-              <p className="text-xs text-slate-400 font-medium">長期複利魔力模擬。</p>
-            </div>
-          </button>
+  const handleSliderChange = (key: 'stocks' | 'bonds' | 'cash', val: number) => {
+    const otherKeys = (['stocks', 'bonds', 'cash'] as const).filter(k => k !== key);
+    const k1 = otherKeys[0];
+    const k2 = otherKeys[1];
+    
+    const currentTotalOther = allocation[k1] + allocation[k2];
+    const remaining = 100 - val;
+    
+    let newK1 = 0;
+    let newK2 = 0;
+    
+    if (currentTotalOther > 0) {
+      newK1 = Math.round((allocation[k1] / currentTotalOther) * remaining);
+      newK2 = remaining - newK1;
+    } else {
+      newK1 = Math.round(remaining / 2);
+      newK2 = remaining - newK1;
+    }
+    
+    if (newK1 < 0) {
+      newK2 += newK1;
+      newK1 = 0;
+    }
+    if (newK2 < 0) {
+      newK1 += newK2;
+      newK2 = 0;
+    }
+    
+    onChange({
+      ...allocation,
+      [key]: val,
+      [k1]: newK1,
+      [k2]: newK2
+    });
+  };
 
-          <button onClick={() => onGo('retirement')} className="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/10 hover:border-gold hover:bg-gold/5 transition-all text-left text-gold hover:text-gold border-gold/30">
-            <div className="p-3 bg-gold/10 rounded-full text-gold shrink-0"><Sparkles /></div>
-            <div>
-              <p className="font-bold text-sm">進階：退休與通膨</p>
-              <p className="text-xs text-slate-400">考慮實質購買力缺口。</p>
-            </div>
-          </button>
+  const estimatedReturn = useMemo(() => {
+    return (allocation.stocks * 0.08 + allocation.bonds * 0.04 + allocation.cash * 0.015).toFixed(1);
+  }, [allocation]);
 
-          <button onClick={() => onGo('stress')} className="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/10 hover:border-red-500 hover:bg-red-500/5 transition-all text-left text-red-400 border-red-500/30">
-            <div className="p-3 bg-red-500/10 rounded-full text-red-500 shrink-0"><BrainCircuit /></div>
-            <div>
-              <p className="font-bold text-sm">核心：極端壓力測試</p>
-              <p className="text-xs text-slate-400">模擬 2008 年級縮水。</p>
-            </div>
-          </button>
+  return (
+    <div className="space-y-8">
+      {/* Top Banner */}
+      <Card className="relative overflow-hidden group border-neon/30">
+        <div className="relative z-10 space-y-4">
+          <h2 className="text-2xl md:text-3xl font-black neon-text uppercase tracking-widest flex items-center gap-2">
+            <Sparkles className="text-neon animate-pulse" /> 系統概覽：整合型金融模擬
+          </h2>
+          <p className="text-slate-300 max-w-3xl leading-relaxed text-sm md:text-base">
+            這是一個高度關聯的理財引擎。在本系統中，您的「風險屬性」與「資產配置」會自動調控「報酬預期」，
+            並整合「複利演算」來推算「退休缺口」與「市場極端壓力」。
+          </p>
         </div>
-      </div>
-      <div className="absolute -bottom-10 -right-10 opacity-5 group-hover:opacity-10 transition-opacity">
-        <Wallet className="w-64 h-64 text-white" />
-      </div>
-    </Card>
+        <div className="absolute -bottom-10 -right-10 opacity-5 group-hover:opacity-10 transition-opacity">
+          <Wallet className="w-64 h-64 text-white" />
+        </div>
+      </Card>
 
-    <SavingChallenges />
-  </div>
-);
+      {/* Main Bento Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* Left Side: Step Guide */}
+        <Card className="lg:col-span-5 flex flex-col justify-between space-y-6">
+          <div className="space-y-4">
+            <h3 className="text-white font-bold tracking-widest text-lg flex items-center gap-2 border-b border-white/5 pb-3">
+              <span className="w-2 h-2 rounded-full bg-neon animate-ping" />
+              引導步驟 / 診斷
+            </h3>
+            
+            <div className="space-y-3">
+              <button onClick={() => onGo('risk')} className="w-full flex items-center gap-4 p-3 bg-white/5 rounded-xl border border-white/10 hover:border-neon hover:bg-neon/10 hover:shadow-[0_0_15px_rgba(0,242,255,0.2)] transition-all text-left group">
+                <div className="p-2 bg-neon/10 rounded-full text-neon shrink-0 group-hover:scale-110 transition-transform"><ShieldCheck className="w-4 h-4" /></div>
+                <div>
+                  <p className="font-bold text-xs group-hover:text-neon transition-colors">步驟一：風險診斷</p>
+                  <p className="text-[10px] text-slate-500">了解自己的心理底線。</p>
+                </div>
+              </button>
+              
+              <button onClick={() => onGo('allocation')} className="w-full flex items-center gap-4 p-3 bg-white/5 rounded-xl border border-white/10 hover:border-neon hover:bg-neon/10 hover:shadow-[0_0_15px_rgba(0,242,255,0.2)] transition-all text-left group">
+                <div className="p-2 bg-neon/10 rounded-full text-neon shrink-0 group-hover:scale-110 transition-transform"><PieChart className="w-4 h-4" /></div>
+                <div>
+                  <p className="font-bold text-xs group-hover:text-neon transition-colors">步驟二：資產配置</p>
+                  <p className="text-[10px] text-slate-500">連動計算預計報酬率。</p>
+                </div>
+              </button>
+
+              <button onClick={() => onGo('sim')} className="w-full flex items-center gap-4 p-3 bg-white/5 rounded-xl border border-white/10 hover:border-neon hover:bg-neon/10 hover:shadow-[0_0_15px_rgba(0,242,255,0.2)] transition-all text-left group">
+                <div className="p-2 bg-neon/10 rounded-full text-neon shrink-0 group-hover:scale-110 transition-transform"><TrendingUp className="w-4 h-4" /></div>
+                <div>
+                  <p className="font-bold text-xs group-hover:text-neon transition-colors">步驟三：成長演算</p>
+                  <p className="text-[10px] text-slate-400 font-medium">長期複利模力模擬。</p>
+                </div>
+              </button>
+
+              <button onClick={() => onGo('retirement')} className="w-full flex items-center gap-4 p-3 bg-white/5 rounded-xl border border-gold/30 hover:border-gold hover:bg-gold/10 hover:shadow-[0_0_15px_rgba(100,85,5,0.4)] transition-all text-left text-gold group">
+                <div className="p-2 bg-gold/10 rounded-full text-gold shrink-0 group-hover:scale-110 transition-transform"><Sparkles className="w-4 h-4" /></div>
+                <div>
+                  <p className="font-bold text-xs text-gold">進階：退休與通膨</p>
+                  <p className="text-[10px] text-slate-400">考慮實質購買力缺口。</p>
+                </div>
+              </button>
+
+              <button onClick={() => onGo('stress')} className="w-full flex items-center gap-4 p-3 bg-white/5 rounded-xl border-red-500/30 hover:border-red-500 hover:bg-red-500/10 hover:shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all text-left text-red-400 group">
+                <div className="p-2 bg-red-500/10 rounded-full text-red-500 shrink-0 group-hover:scale-110 transition-transform"><BrainCircuit className="w-4 h-4" /></div>
+                <div>
+                  <p className="font-bold text-xs text-red-400">核心：極端壓力測試</p>
+                  <p className="text-[10px] text-slate-400">模擬 2008 年級縮水。</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </Card>
+
+        {/* Right Side: Aurora Interactive Allocator & Pie Chart (極光、滑動、原餅圖) */}
+        <Card className="lg:col-span-7 relative overflow-hidden bg-gradient-to-br from-black/80 to-[#04010a]/90 border border-neon/20">
+          {/* Internal Aurora Glowing Effects behind the Pie Chart */}
+          <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-neon/15 to-transparent pointer-events-none blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-neon/10 rounded-full blur-2xl pointer-events-none" />
+
+          <div className="relative z-10 space-y-6">
+            <div className="flex justify-between items-center border-b border-white/5 pb-3">
+              <h3 className="text-neon font-black tracking-widest text-lg flex items-center gap-2">
+                <PieChart className="w-5 h-5 text-neon" /> 極光智動資產配置盤
+              </h3>
+              <span className="text-[10px] font-mono tracking-widest text-slate-500 bg-white/5 px-2 py-1 rounded">
+                LIVE DYNAMIC PORTFOLIO
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+              {/* Sliders on Left of inner grid */}
+              <div className="md:col-span-6 space-y-5">
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  拖曳滑桿即時連動，體驗**智動等比例調整**與極致流暢的滑動回饋：
+                </p>
+                
+                {['股票', '債券', '現金'].map((type, idx) => {
+                  const key = idx === 0 ? 'stocks' : idx === 1 ? 'bonds' : 'cash';
+                  const labelColor = idx === 0 ? 'text-neon' : idx === 1 ? 'text-gold' : 'text-slate-400';
+                  return (
+                    <div key={type} className="space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <span className={`text-xs font-bold ${labelColor} flex items-center gap-1.5`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${idx === 0 ? 'bg-neon' : idx === 1 ? 'bg-gold' : 'bg-slate-400'}`} />
+                          {type}
+                        </span>
+                        <span className="text-xs font-mono font-black text-white bg-white/5 px-1.5 py-0.5 rounded">
+                          {allocation[key as keyof typeof allocation]}%
+                        </span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="0" max="100" 
+                        value={allocation[key as keyof typeof allocation]} 
+                        onChange={e => handleSliderChange(key as 'stocks' | 'bonds' | 'cash', Number(e.target.value))}
+                        className="w-full accent-neon cursor-pointer h-1.5 bg-white/5 rounded-lg outline-none appearance-none hover:bg-white/10 transition-colors"
+                      />
+                    </div>
+                  );
+                })}
+
+                <div className="p-3 bg-white/[0.02] border border-white/5 rounded-lg space-y-1">
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider block">預估年報酬率</span>
+                  <p className="text-2xl font-black text-neon font-mono">{estimatedReturn}%</p>
+                </div>
+              </div>
+
+              {/* Pie Chart on Right of inner grid */}
+              <div className="md:col-span-6 flex flex-col items-center justify-center relative md:border-l md:border-white/5 md:pl-4">
+                <div className="w-full h-[220px] flex items-center justify-center relative">
+                  <RePieChart width={220} height={220}>
+                    <Pie 
+                      data={data} 
+                      innerRadius={65} 
+                      outerRadius={90} 
+                      paddingAngle={4} 
+                      dataKey="value" 
+                      stroke="none"
+                      isAnimationActive={true}
+                      animationDuration={300}
+                    >
+                      {data.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#020202', border: '1px solid #00f2ff20', borderRadius: '12px' }} 
+                      itemStyle={{ color: '#00f2ff' }} 
+                    />
+                  </RePieChart>
+                  
+                  {/* Center percentage summary */}
+                  <div className="absolute text-center">
+                    <p className="text-[9px] text-slate-500 uppercase tracking-widest font-mono">股 / 債 / 幣</p>
+                    <p className="text-xl font-black text-white font-mono animate-fade-in">
+                      {allocation.stocks}:{allocation.bonds}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-[10px] flex gap-3 text-slate-500 mt-2 font-mono">
+                  <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-neon inline-block" /> 股: {allocation.stocks}%</span>
+                  <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-gold inline-block" /> 債: {allocation.bonds}%</span>
+                  <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block" /> 現: {allocation.cash}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+      </div>
+
+      <SavingChallenges />
+    </div>
+  );
+};
 
 // --- Saving Challenges ---
 const SavingChallenges = () => {
@@ -613,31 +861,34 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col font-sans relative">
-      {/* Textured Ambient Background Container */}
-      <div className="textured-bg">
-        <div className="textured-grid" />
-        <div className="ambient-glow-1" />
-        <div className="ambient-glow-2" />
+    <div className="min-h-screen flex flex-col font-sans relative overflow-x-hidden">
+      {/* Textured Aurora Ambient Background Container */}
+      <div className="aurora-bg">
+        <div className="aurora-grid" />
+        <div className="aurora-glow-1" />
+        <div className="aurora-glow-2" />
+        <div className="aurora-glow-3" />
       </div>
 
       {/* Header */}
-      <header className="h-16 border-b border-white/10 backdrop-blur-md sticky top-0 z-50 px-6 flex items-center justify-between">
+      <header className="h-16 border-b border-white/10 backdrop-blur-md sticky top-0 z-50 px-6 flex items-center justify-between bg-black/45">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-neon rounded flex items-center justify-center font-black text-black text-xl">T</div>
           <span className="font-black tracking-[4px] text-neon neon-text">TITAN_SYSTEM</span>
         </div>
         
-        <nav className="hidden md:flex gap-1">
+        <nav className="hidden md:flex gap-1.5">
           {tabs.map(tab => (
             <button 
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-lg text-sm transition-all flex items-center gap-2 ${
-                activeTab === tab.id ? 'bg-neon/10 text-neon font-bold' : 'text-slate-500 hover:text-white'
+              className={`px-4 py-2 rounded-lg text-sm transition-all flex items-center gap-2 border ${
+                activeTab === tab.id 
+                  ? 'bg-neon/15 text-neon font-black border-neon shadow-[0_0_15px_rgba(0,242,255,0.4),_inset_0_0_8px_rgba(0,242,255,0.2)] text-shadow-neon' 
+                  : 'text-slate-400 hover:text-white hover:bg-white/5 border-transparent hover:border-white/10'
               }`}
             >
-              <tab.icon className="w-4 h-4" />
+              <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? 'text-neon animate-pulse' : 'text-slate-500'}`} />
               {tab.label}
             </button>
           ))}
@@ -655,14 +906,19 @@ export default function App() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-black/90 border-b border-white/10 overflow-hidden"
+            className="md:hidden bg-black/95 border-b border-white/10 overflow-hidden relative z-40"
           >
             {tabs.map(tab => (
               <button 
                 key={tab.id}
                 onClick={() => { setActiveTab(tab.id); setMenuOpen(false); }}
-                className="w-full text-left px-8 py-4 border-b border-white/5 text-slate-300 hover:bg-neon/10"
+                className={`w-full text-left px-8 py-4 border-b border-white/5 transition-all flex items-center gap-3 ${
+                  activeTab === tab.id 
+                    ? 'bg-neon/20 text-neon font-bold border-l-4 border-l-neon shadow-[0_0_20px_rgba(0,242,255,0.2),_inset_0_0_15px_rgba(0,242,255,0.15)] text-shadow-neon' 
+                    : 'text-slate-300 hover:bg-neon/10'
+                }`}
               >
+                <tab.icon className="w-4 h-4 text-neon" />
                 {tab.label}
               </button>
             ))}
@@ -671,17 +927,38 @@ export default function App() {
       </AnimatePresence>
 
       {/* Main Stage */}
-      <main className="flex-1 max-w-7xl mx-auto w-full p-6 md:p-10 mb-20">
+      <main className="flex-1 max-w-7xl mx-auto w-full p-6 md:p-10 mb-20 relative z-10">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.3 }}
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -40 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
           >
-            {activeTab === 'home' && <Home onGo={setActiveTab} />}
-            {activeTab === 'risk' && <RiskAssessment onComplete={(res) => { setRiskProfile(res); setActiveTab('allocation'); }} />}
+            {activeTab === 'home' && (
+              <Home 
+                allocation={allocation} 
+                onChange={setAllocation} 
+                onGo={setActiveTab} 
+              />
+            )}
+            {activeTab === 'risk' && (
+              <RiskAssessment 
+                onComplete={(res) => { 
+                  setRiskProfile(res); 
+                  const lowerRes = res.toLowerCase();
+                  if (lowerRes.includes('積極') || lowerRes.includes('aggressive')) {
+                    setAllocation({ stocks: 80, bonds: 15, cash: 5 });
+                  } else if (lowerRes.includes('穩健') || lowerRes.includes('balanced')) {
+                    setAllocation({ stocks: 50, bonds: 35, cash: 15 });
+                  } else if (lowerRes.includes('保守') || lowerRes.includes('conservative') || lowerRes.includes('defensive')) {
+                    setAllocation({ stocks: 20, bonds: 50, cash: 30 });
+                  }
+                  setActiveTab('allocation'); 
+                }} 
+              />
+            )}
             {activeTab === 'allocation' && <AssetAllocator allocation={allocation} onChange={setAllocation} riskProfile={riskProfile} onGo={() => setActiveTab('sim')} />}
             {activeTab === 'sim' && <CompoundSimulator allocation={allocation} />}
             {activeTab === 'target_plan' && <TargetPlanner allocation={allocation} />}
@@ -692,7 +969,7 @@ export default function App() {
       </main>
 
       {/* Footer Branding */}
-      <footer className="py-6 border-t border-white/5 bg-black/30">
+      <footer className="py-6 border-t border-white/5 bg-black/45 relative z-10">
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center text-[10px] uppercase tracking-widest text-slate-700">
            <span>TITAN_SYSTEM INTERACTIVE CORE V2.1.0</span>
            <span>SEC_STATUS: STANDBY</span>

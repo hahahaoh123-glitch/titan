@@ -13,88 +13,98 @@
 
 @layer base {
   body {
-    @apply bg-[#030303] text-slate-100 antialiased selection:bg-neon/30;
+    @apply bg-dark text-slate-100 antialiased selection:bg-neon/30;
   }
 }
 
-.textured-bg {
+/* Premium Nord Aurora Flowing Dynamic Background */
+.aurora-bg {
   position: fixed;
   inset: 0;
   width: 100%;
   height: 100%;
   z-index: -10;
-  background-color: #020202;
-  /* Deep luxury financial terminal mesh gradient */
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(0, 242, 255, 0.04) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(255, 215, 0, 0.02) 0px, transparent 50%),
-    radial-gradient(at 50% 50%, rgba(3, 3, 3, 1) 0px, rgba(1, 1, 1, 1) 100%);
+  background-color: #030206;
   overflow: hidden;
+  pointer-events: none;
 }
 
-/* Subtle architectural grid overlay */
-.textured-grid {
+.aurora-glow-1 {
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 80%;
+  height: 80%;
+  background: radial-gradient(circle, rgba(0, 242, 255, 0.12) 0%, rgba(59, 130, 246, 0.05) 50%, transparent 100%);
+  filter: blur(100px);
+  animation: aurora-flow-1 30s infinite alternate ease-in-out;
+}
+
+.aurora-glow-2 {
+  position: absolute;
+  bottom: -10%;
+  right: -10%;
+  width: 90%;
+  height: 90%;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.08) 0%, rgba(34, 197, 94, 0.04) 50%, transparent 100%);
+  filter: blur(120px);
+  animation: aurora-flow-2 40s infinite alternate ease-in-out;
+}
+
+.aurora-glow-3 {
+  position: absolute;
+  top: 40%;
+  left: 30%;
+  width: 60%;
+  height: 60%;
+  background: radial-gradient(circle, rgba(0, 242, 255, 0.05) 0%, rgba(168, 85, 247, 0.03) 60%, transparent 100%);
+  filter: blur(90px);
+  animation: aurora-flow-3 35s infinite alternate ease-in-out;
+}
+
+@keyframes aurora-flow-1 {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  50% { transform: translate(100px, 80px) scale(1.15) rotate(45deg); }
+  100% { transform: translate(-50px, -50px) scale(0.9) rotate(-30deg); }
+}
+
+@keyframes aurora-flow-2 {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  50% { transform: translate(-120px, -60px) scale(0.85) rotate(-60deg); }
+  100% { transform: translate(60px, 90px) scale(1.1) rotate(45deg); }
+}
+
+@keyframes aurora-flow-3 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(50px, -100px) scale(1.2); }
+  100% { transform: translate(-80px, 40px) scale(0.95); }
+}
+
+.aurora-grid {
   position: absolute;
   inset: 0;
   background-image: 
     linear-gradient(rgba(255, 255, 255, 0.005) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.005) 1px, transparent 1px);
-  background-size: 30px 30px;
+  background-size: 40px 40px;
   background-position: center;
-  mask-image: radial-gradient(ellipse 65% 65% at 50% 50%, #000 40%, transparent 100%);
-}
-
-/* Premium ambient flowing light pools */
-.ambient-glow-1 {
-  position: absolute;
-  top: 10%;
-  left: 15%;
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(0, 242, 255, 0.05) 0%, transparent 70%);
-  filter: blur(120px);
-  pointer-events: none;
-  animation: floatGlow1 30s infinite alternate ease-in-out;
-}
-
-.ambient-glow-2 {
-  position: absolute;
-  bottom: 10%;
-  right: 15%;
-  width: 700px;
-  height: 700px;
-  background: radial-gradient(circle, rgba(255, 215, 0, 0.015) 0%, transparent 70%);
-  filter: blur(140px);
-  pointer-events: none;
-  animation: floatGlow2 40s infinite alternate ease-in-out;
-}
-
-@keyframes floatGlow1 {
-  0% { transform: translate(0px, 0px) scale(1); }
-  50% { transform: translate(60px, -40px) scale(1.15); }
-  100% { transform: translate(-30px, 50px) scale(0.95); }
-}
-
-@keyframes floatGlow2 {
-  0% { transform: translate(0px, 0px) scale(1); }
-  50% { transform: translate(-50px, 60px) scale(0.9); }
-  100% { transform: translate(40px, -40px) scale(1.1); }
+  mask-image: radial-gradient(ellipse 60% 60% at 50% 50%, black 40%, transparent 100%);
 }
 
 .glass-card {
-  @apply bg-neutral-950/40 border border-white/[0.04] rounded-2xl backdrop-blur-xl shadow-[0_8px_40px_0_rgba(0,0,0,0.5)];
+  @apply bg-neutral-950/40 border border-white/[0.04] rounded-2xl backdrop-blur-xl shadow-[0_8px_40px_0_rgba(0,0,0,0.6)];
   position: relative;
   overflow: hidden;
 }
 
-/* Add a very subtle light border accent to glass cards */
+/* Subtle border trace highlighting */
 .glass-card::before {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 40%, transparent 100%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 50%, transparent 100%);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -105,8 +115,8 @@
   box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
 }
 
-.neon-text {
-  text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+.neon-text, .text-shadow-neon {
+  text-shadow: 0 0 10px rgba(0, 242, 255, 0.55), 0 0 2px rgba(0, 242, 255, 0.3);
 }
 
 /* Custom transitions */
